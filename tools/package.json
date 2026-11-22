@@ -1,0 +1,15 @@
+{
+  "name": "ocelote-ar-tools",
+  "private": true,
+  "type": "module",
+  "description": "Herramientas para convertir el FBX a GLB y generar el código QR",
+  "scripts": {
+    "build-model": "./build.sh ../source/Ocelote_UNACH.fbx ../models/ocelote.glb",
+    "qr": "node make-qr.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/cli": "^4.0.0",
+    "qrcode": "^1.5.4",
+    "three": "0.170.0"
+  }
+}

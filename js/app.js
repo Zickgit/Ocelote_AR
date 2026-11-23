@@ -1,83 +1,66 @@
 // Ocelote UNACH · AR
-// Controla animaciones, audio y estado de la experiencia de realidad aumentada.
+// Un solo botón "Promocionar": reproduce la animación del modelo junto con su voz.
 
 const mv = document.getElementById('ocelote');
 const voz = document.getElementById('voz');
 const controls = document.getElementById('controls');
-const btnSound = document.getElementById('btn-sound');
+const btnPromo = document.getElementById('btn-promo');
 const hint = document.getElementById('hint');
 const desktopNote = document.getElementById('desktop-note');
 const progress = mv.querySelector('.progress');
 const progressFill = mv.querySelector('.progress-fill');
 
-// Animaciones que se reproducen una vez y luego regresan a "Idle".
-const ONE_SHOT = new Set(['Saludo', 'Celebrar', 'Hablar']);
-// Animación que va acompañada del audio de voz.
-const TALK = 'Hablar';
-// Archivo de audio de la voz (si no existe, la animación se reproduce sin sonido).
+// Voz del Ocelote (45 s); la animación del modelo dura lo mismo y está sincronizada con ella.
 const AUDIO_SRC = 'audio/ocelote.mp3';
 
-const btnHablar = document.getElementById('btn-hablar');
-
-let current = 'Idle';
-let pending = null;   // botón tocado mientras el modelo aún carga
+let playing = false;
+let pendingPlay = false; // se tocó "Promocionar" mientras el modelo cargaba
 let hasAudio = true;
 
 function setupAudio() {
   voz.src = AUDIO_SRC;
   voz.addEventListener('error', () => {
     hasAudio = false;
-    btnSound.hidden = true;
-    btnHablar.classList.remove('cargando');
+    btnPromo.classList.remove('cargando');
   });
-  // iOS no descarga audio hasta que hay un toque: lo pedimos con el primer toque en la página
-  // para que al tocar "Hablar" la voz ya esté lista.
+  // iOS no descarga audio hasta que hay un toque: lo pedimos con el primer toque en la página.
   document.addEventListener('pointerdown', () => {
     if (hasAudio && voz.readyState === 0) voz.load();
   }, { once: true, capture: true });
 }
 
-function stopVoice() {
-  btnHablar.classList.remove('cargando');
+// Deja al Ocelote quieto en el primer cuadro de su animación.
+function rest() {
+  playing = false;
+  btnPromo.classList.remove('active', 'cargando');
   if (!voz.paused) voz.pause();
   voz.currentTime = 0;
+  if (mv.loaded) {
+    mv.pause();
+    mv.currentTime = 0;
+  }
 }
 
-function markActive(name) {
-  controls.querySelectorAll('button[data-anim]').forEach((b) => {
-    b.classList.toggle('active', b.dataset.anim === name);
-  });
-}
-
-function playAnim(name) {
+function promote() {
   if (!mv.loaded) {
-    // El modelo todavía se está descargando: recordamos la elección y la aplicamos al terminar.
-    pending = name;
-    markActive(name);
+    pendingPlay = true;
+    btnPromo.classList.add('active');
     return;
   }
-  if (!mv.availableAnimations.includes(name)) return;
-  current = name;
-  mv.animationName = name;
-  mv.play({ repetitions: ONE_SHOT.has(name) ? 1 : Infinity });
+  playing = true;
+  btnPromo.classList.add('active');
+  mv.play({ repetitions: 1 });
   mv.currentTime = 0;
-  markActive(name);
-
-  if (name === TALK && hasAudio) {
+  if (hasAudio) {
     voz.currentTime = 0;
-    btnHablar.classList.add('cargando');
-    voz.play().catch(() => {
-      // el navegador bloqueó el audio: la animación sigue sin voz
-      btnHablar.classList.remove('cargando');
-    });
-  } else {
-    stopVoice();
+    btnPromo.classList.add('cargando');
+    voz.play().catch(() => btnPromo.classList.remove('cargando'));
   }
 }
 
-// Mantiene la boca sincronizada con el audio mientras habla.
+// Mantiene boca y gestos sincronizados con la voz.
 function syncLoop() {
-  if (current === TALK && hasAudio && !voz.paused) {
+  if (playing && hasAudio && !voz.paused) {
     const drift = Math.abs(mv.currentTime - voz.currentTime);
     if (drift > 0.12) mv.currentTime = voz.currentTime;
   }
@@ -86,36 +69,13 @@ function syncLoop() {
 
 // --- Eventos -------------------------------------------------------------
 
-controls.addEventListener('click', (e) => {
-  const btn = e.target.closest('button[data-anim]');
-  if (!btn) return;
-  playAnim(btn.dataset.anim);
-});
+btnPromo.addEventListener('click', promote);
 
-// Al entrar a AR paramos la voz de la página (en iPhone, el USDZ trae su propia voz).
-document.getElementById('ar-button').addEventListener('click', () => {
-  if (current === TALK) playAnim('Idle');
-});
-
-btnSound.addEventListener('click', () => {
-  voz.muted = !voz.muted;
-  btnSound.textContent = voz.muted ? '🔇' : '🔊';
-  btnSound.setAttribute('aria-pressed', String(!voz.muted));
-});
-
+voz.addEventListener('playing', () => btnPromo.classList.remove('cargando'));
+voz.addEventListener('ended', () => { if (playing) rest(); });
 mv.addEventListener('finished', () => {
-  // model-viewer pausa todo al terminar una animación de una sola vez. Si el aviso viene de
-  // una animación anterior (p. ej. se tocó otro botón justo cuando terminaba), reanudamos la actual.
-  const ended = ONE_SHOT.has(current) && mv.currentTime >= mv.duration - 0.05;
-  if (ended) playAnim('Idle');
-  else mv.play({ repetitions: ONE_SHOT.has(current) ? 1 : Infinity });
-});
-
-// La voz ya suena: quitamos el indicador de carga del botón.
-voz.addEventListener('playing', () => btnHablar.classList.remove('cargando'));
-
-voz.addEventListener('ended', () => {
-  if (current === TALK) playAnim('Idle');
+  // Sin audio, la animación marca el final; con audio esperamos a que termine la voz.
+  if (playing && (!hasAudio || voz.paused)) rest();
 });
 
 mv.addEventListener('progress', (e) => {
@@ -126,35 +86,50 @@ mv.addEventListener('progress', (e) => {
 
 mv.addEventListener('load', () => {
   controls.classList.remove('loading');
-  playAnim(pending || 'Saludo');
-  pending = null;
+  mv.animationName = mv.availableAnimations[0];
+  if (pendingPlay) {
+    pendingPlay = false;
+    promote();
+  } else {
+    // Activa la animación y, tras un par de cuadros, la congela en su primer cuadro
+    // (si se pausa de inmediato se vería la pose base con los brazos abiertos).
+    mv.play({ repetitions: 1 });
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (!playing) rest(); }));
+  }
   if (!mv.canActivateAR) {
     const isTouch = matchMedia('(pointer: coarse)').matches;
     if (isTouch) {
-      hint.textContent = 'Tu navegador no admite realidad aumentada; puedes girar el modelo con el dedo.';
+      hint.textContent = 'Tu navegador no admite realidad aumentada; toca Promocionar para verlo aquí.';
     } else {
-      hint.textContent = 'Arrastra para girar el modelo. Para verlo en AR, ábrelo desde tu celular.';
+      hint.textContent = 'Toca Promocionar. Para verlo en realidad aumentada, ábrelo desde tu celular.';
       desktopNote.hidden = false;
     }
   }
 });
 
+// Al entrar a AR paramos la voz de la página (en iPhone, el USDZ trae su propia voz).
+document.getElementById('ar-button').addEventListener('click', () => {
+  if (playing) rest();
+});
+
 mv.addEventListener('ar-status', (e) => {
   const status = e.detail.status;
   if (status === 'session-started') {
+    // Android (WebXR): igual que en iPhone, al aparecer en tu espacio empieza a promocionar.
     hint.hidden = true;
-    playAnim('Saludo');
+    promote();
   } else if (status === 'not-presenting') {
     hint.hidden = false;
+    rest();
   } else if (status === 'failed') {
     hint.hidden = false;
     hint.textContent = 'No se pudo iniciar la cámara. Revisa los permisos e inténtalo de nuevo.';
   }
 });
 
-// Al salir de la pestaña (p. ej. al abrir Scene Viewer / Quick Look) pausamos la voz.
+// Al salir de la pestaña (p. ej. al abrir Scene Viewer / Quick Look) detenemos todo.
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && current === TALK) playAnim('Idle');
+  if (document.hidden && playing) rest();
 });
 
 setupAudio();

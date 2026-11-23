@@ -17,13 +17,13 @@
 <body>
   <header class="top">
     <h1>Ocelote <span>UNACH</span></h1>
-    <p class="hint" id="hint">Toca <strong>Ver en tu espacio</strong> y apunta la cámara al piso.</p>
+    <p class="hint" id="hint">Toca <strong>Promocionar</strong> para escuchar al Ocelote, o <strong>Ver en tu espacio</strong> para verlo en tu entorno.</p>
   </header>
 
   <model-viewer
     id="ocelote"
-    src="models/ocelote.glb"
-    ios-src="models/ocelote.usdz?v=3"
+    src="models/ocelote.glb?v=4"
+    ios-src="models/ocelote.usdz?v=4"
     alt="Ocelote, mascota de la UNACH, animado en 3D"
     ar
     ar-modes="webxr scene-viewer quick-look"
@@ -36,9 +36,7 @@
     shadow-softness="0.8"
     environment-image="neutral"
     exposure="1.05"
-    animation-name="Idle"
-    animation-crossfade-duration="350"
-    autoplay
+    animation-crossfade-duration="0"
     interaction-prompt="none">
 
     <div class="progress" slot="progress-bar"><div class="progress-fill"></div></div>
@@ -48,13 +46,8 @@
       Ver en tu espacio
     </button>
 
-    <nav class="controls loading" id="controls" aria-label="Animaciones">
-      <button data-anim="Saludo">👋 Saludar</button>
-      <button data-anim="Hablar" id="btn-hablar">💬 Hablar</button>
-      <button data-anim="Celebrar">🎉 Celebrar</button>
-      <button data-anim="Caminar">🚶 Caminar</button>
-      <button data-anim="Idle">🧍 Reposo</button>
-      <button id="btn-sound" class="icon" aria-pressed="true" title="Sonido">🔊</button>
+    <nav class="controls loading" id="controls">
+      <button id="btn-promo" class="promo">📣 Promocionar</button>
     </nav>
   </model-viewer>
 

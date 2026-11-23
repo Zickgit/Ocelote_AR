@@ -3,37 +3,38 @@
 Página web que muestra al Ocelote de la UNACH en realidad aumentada (AR) usando la
 cámara del celular. Se accede escaneando un código QR; no hace falta instalar ninguna app.
 
-- **Android (Chrome):** AR dentro de la página (WebXR) con animaciones, botones y voz.
-  Si el teléfono no admite WebXR se abre Google Scene Viewer.
-- **iPhone / iPad (Safari):** se abre AR Quick Look de Apple con el Ocelote animado (ver limitaciones abajo).
-- **Computadora:** se ve el modelo 3D interactivo y un QR para abrirlo en el celular.
+El Ocelote tiene una sola animación de promoción (45 s, con gestos faciales) sincronizada
+con su voz.
+
+- **Página web:** un botón **📣 Promocionar** reproduce la animación con la voz.
+- **Android (Chrome):** AR dentro de la página (WebXR); al aparecer en tu espacio empieza a
+  promocionar, y el botón sigue disponible. Si el teléfono no admite WebXR se abre Google
+  Scene Viewer (sin voz).
+- **iPhone / iPad (Safari):** AR Quick Look de Apple; al aparecer promociona con su voz y al
+  tocarlo vuelve a empezar (ver detalles abajo).
+- **Computadora:** se ve el modelo 3D y un QR para abrirlo en el celular.
 
 ## Estructura
 
 | Ruta | Contenido |
 | --- | --- |
 | `index.html`, `css/`, `js/` | La página web |
-| `models/ocelote.glb` | Modelo convertido del FBX (665 KB, comprimido con Draco, 6 animaciones) |
-| `models/ocelote.usdz` | Versión para iPhone / iPad (AR Quick Look) con voz y animación |
+| `models/ocelote.glb` | Modelo para la web y Android (5.6 MB, Draco, texturas JPEG 2048/1024) |
+| `models/ocelote.usdz` | Modelo para iPhone / iPad (AR Quick Look) con voz y comportamientos |
 | `vendor/model-viewer.min.js` | [`<model-viewer>`](https://modelviewer.dev) 4.4.0 de Google |
 | `vendor/draco/` | Decodificador Draco (de three.js) para leer el modelo comprimido |
-| `audio/ocelote.mp3` | Voz del Ocelote (va con la animación Hablar) |
+| `audio/ocelote.mp3` | Voz del Ocelote (45 s, sincronizada con la animación) |
 | `qr/ocelote-qr.png` / `.svg` | Código QR que abre la página |
 | `qr/imprimir.html` | Hoja lista para imprimir con el QR e instrucciones |
-| `source/Ocelote_UNACH.fbx` | Modelo original |
+| `source/ocelotechido_promo.fbx` | Modelo original (Blender) |
 | `tools/` | Scripts para reconvertir el modelo y regenerar el QR |
 
-## Animaciones incluidas
+## Animación y audio
 
-`Idle` (reposo, en bucle), `Saludo`, `Hablar` (45 s), `Hablar_Loop`, `Celebrar` y `Caminar`.
-Al cargar y al entrar en AR el Ocelote saluda y luego queda en reposo. Los botones de la
-parte inferior cambian de animación.
-
-## Audio
-
-`audio/ocelote.mp3` es la voz del Ocelote (45 s). La animación `Hablar` dura exactamente lo
-mismo y su mandíbula ya está sincronizada con la voz. Al tocar **💬 Hablar**, la voz suena
-y la página corrige cualquier desfase entre audio y animación. El botón 🔊 silencia.
+El FBX trae una animación (`Promo_UNACH`, 1351 cuadros a 30 fps = 45 s) que mueve el
+esqueleto y 10 gestos faciales (shape keys: boca, parpadeo, ojos, orejas). El formato FBX no
+guarda sonido, así que la voz va aparte en `audio/ocelote.mp3`; dura lo mismo y la boca
+coincide con ella. Mientras suena, la página corrige cualquier desfase entre voz y animación.
 
 ## Publicar en GitHub Pages
 
@@ -54,17 +55,25 @@ node make-qr.mjs https://tu-dominio.com/ruta/
 
 ## Reconvertir el modelo
 
-Si actualizas el FBX en Blender, reemplaza `source/Ocelote_UNACH.fbx` y ejecuta:
+Si actualizas el FBX en Blender, reemplaza `source/ocelotechido_promo.fbx` y ejecuta
+(requiere Python 3.13, Node y ffmpeg):
 
 ```bash
-cd tools
-npm install
-npm run build-model
+python3 -m venv venv && venv/bin/pip install bpy==5.2.4 usd-core
+(cd tools && npm install)
+
+# Web / Android
+PY=venv/bin/python tools/build.sh source/ocelotechido_promo.fbx models/ocelote.glb
+
+# iPhone / iPad
+ffmpeg -i audio/ocelote.mp3 -c:a aac -b:a 128k voz.m4a
+venv/bin/python tools/make_usdz.py source/ocelotechido_promo.fbx models/ocelote.usdz --audio voz.m4a
 ```
 
-El script usa three.js para leer el FBX, convierte los materiales a PBR (corrigiendo el
-espacio de color lineal de Blender), une los grupos de material, y luego glTF-Transform
-suelda vértices, re-muestrea las animaciones y comprime con Draco.
+Ambos scripts usan Blender (como librería de Python) para leer el FBX y colocan los pies del
+Ocelote a la altura del piso. `build.sh` exporta el GLB y lo optimiza con glTF-Transform
+(texturas a 2048/1024 px en JPEG y compresión Draco). Después de regenerar, sube el número
+`?v=` de `src` / `ios-src` en `index.html` para que los celulares no usen la versión en caché.
 
 ## iPhone / iPad (AR Quick Look)
 
@@ -73,18 +82,5 @@ abre el visor de Apple con `models/ocelote.usdz`. Ese visor no muestra los boton
 página ni reproduce su audio, así que el archivo trae la voz integrada y "comportamientos"
 de Apple (el mismo esquema que usa Reality Composer):
 
-- Al aparecer, el Ocelote dice su diálogo (animación Hablar + voz) y luego queda en reposo.
-- Al tocarlo, vuelve a hablar.
-
-En iPhone, los botones y la voz también funcionan en la vista 3D de la página.
-
-Para regenerar el USDZ (requiere Python 3.13 y ffmpeg):
-
-```bash
-python3 -m venv venv && venv/bin/pip install bpy==5.2.4 usd-core
-ffmpeg -i audio/ocelote.mp3 -c:a aac -b:a 128k voz.m4a
-venv/bin/python tools/make_usdz.py source/Ocelote_UNACH.fbx models/ocelote.usdz --talk voz.m4a
-```
-
-Sin `--talk`, el script genera una secuencia de animaciones en bucle sin audio
-(se elige con `--seq`, nombres separados por comas).
+- Al aparecer en tu espacio, el Ocelote promociona (animación + gestos + voz).
+- Al tocarlo, vuelve a empezar desde el inicio.

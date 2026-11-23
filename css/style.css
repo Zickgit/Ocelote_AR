@@ -105,3 +105,7 @@ model-viewer[ar-status="session-started"] .ar-button { display: none; }
 .desktop-note p { margin: 0; }
 
 @media (max-width: 700px) { .desktop-note { display: none; } }
+
+/* Botón principal */
+.controls button.promo { padding: 12px 26px; font-size: 1.05rem; }
+.controls button.promo.active { border-color: var(--oro); }

@@ -82,7 +82,12 @@ model-viewer[ar-status="session-started"] .ar-button { display: none; }
   border: 2px solid transparent; border-radius: 99px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, .25);
   cursor: pointer;
+  touch-action: manipulation;          /* evita el zoom por doble toque en iPhone */
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .2s;
 }
+.controls.loading button { opacity: .55; }
+.controls button.cargando::after { content: " ⏳"; }
 .controls button.active { border-color: var(--oro); background: var(--azul-2); }
 .controls button.icon { padding: 10px 12px; }
 .controls button[hidden] { display: none; }

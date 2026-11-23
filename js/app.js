@@ -17,27 +17,28 @@ const TALK = 'Hablar';
 // Archivo de audio de la voz (si no existe, la animación se reproduce sin sonido).
 const AUDIO_SRC = 'audio/ocelote.mp3';
 
+const btnHablar = document.getElementById('btn-hablar');
+
 let current = 'Idle';
-let hasAudio = false;
+let pending = null;   // botón tocado mientras el modelo aún carga
+let hasAudio = true;
 
-async function exists(url) {
-  try {
-    const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-    return r.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function setupAudio() {
-  if (await exists(AUDIO_SRC)) {
-    voz.src = AUDIO_SRC;
-    hasAudio = true;
-  }
-  btnSound.hidden = !hasAudio;
+function setupAudio() {
+  voz.src = AUDIO_SRC;
+  voz.addEventListener('error', () => {
+    hasAudio = false;
+    btnSound.hidden = true;
+    btnHablar.classList.remove('cargando');
+  });
+  // iOS no descarga audio hasta que hay un toque: lo pedimos con el primer toque en la página
+  // para que al tocar "Hablar" la voz ya esté lista.
+  document.addEventListener('pointerdown', () => {
+    if (hasAudio && voz.readyState === 0) voz.load();
+  }, { once: true, capture: true });
 }
 
 function stopVoice() {
+  btnHablar.classList.remove('cargando');
   if (!voz.paused) voz.pause();
   voz.currentTime = 0;
 }
@@ -49,6 +50,12 @@ function markActive(name) {
 }
 
 function playAnim(name) {
+  if (!mv.loaded) {
+    // El modelo todavía se está descargando: recordamos la elección y la aplicamos al terminar.
+    pending = name;
+    markActive(name);
+    return;
+  }
   if (!mv.availableAnimations.includes(name)) return;
   current = name;
   mv.animationName = name;
@@ -58,7 +65,11 @@ function playAnim(name) {
 
   if (name === TALK && hasAudio) {
     voz.currentTime = 0;
-    voz.play().catch(() => { /* el navegador bloqueó el audio: la animación sigue */ });
+    btnHablar.classList.add('cargando');
+    voz.play().catch(() => {
+      // el navegador bloqueó el audio: la animación sigue sin voz
+      btnHablar.classList.remove('cargando');
+    });
   } else {
     stopVoice();
   }
@@ -93,8 +104,15 @@ btnSound.addEventListener('click', () => {
 });
 
 mv.addEventListener('finished', () => {
-  if (ONE_SHOT.has(current)) playAnim('Idle');
+  // model-viewer pausa todo al terminar una animación de una sola vez. Si el aviso viene de
+  // una animación anterior (p. ej. se tocó otro botón justo cuando terminaba), reanudamos la actual.
+  const ended = ONE_SHOT.has(current) && mv.currentTime >= mv.duration - 0.05;
+  if (ended) playAnim('Idle');
+  else mv.play({ repetitions: ONE_SHOT.has(current) ? 1 : Infinity });
 });
+
+// La voz ya suena: quitamos el indicador de carga del botón.
+voz.addEventListener('playing', () => btnHablar.classList.remove('cargando'));
 
 voz.addEventListener('ended', () => {
   if (current === TALK) playAnim('Idle');
@@ -107,7 +125,9 @@ mv.addEventListener('progress', (e) => {
 });
 
 mv.addEventListener('load', () => {
-  playAnim('Saludo');
+  controls.classList.remove('loading');
+  playAnim(pending || 'Saludo');
+  pending = null;
   if (!mv.canActivateAR) {
     const isTouch = matchMedia('(pointer: coarse)').matches;
     if (isTouch) {

@@ -14,7 +14,7 @@ cámara del celular. Se accede escaneando un código QR; no hace falta instalar 
 | --- | --- |
 | `index.html`, `css/`, `js/` | La página web |
 | `models/ocelote.glb` | Modelo convertido del FBX (665 KB, comprimido con Draco, 6 animaciones) |
-| `models/ocelote.usdz`, `models/ocelote-habla.usdz` | Versiones animadas para iPhone / iPad (AR Quick Look) |
+| `models/ocelote.usdz` | Versión para iPhone / iPad (AR Quick Look) con voz y animación |
 | `vendor/model-viewer.min.js` | [`<model-viewer>`](https://modelviewer.dev) 4.4.0 de Google |
 | `vendor/draco/` | Decodificador Draco (de three.js) para leer el modelo comprimido |
 | `audio/ocelote.mp3` | Voz del Ocelote (va con la animación Hablar) |
@@ -69,21 +69,22 @@ suelda vértices, re-muestrea las animaciones y comprime con Draco.
 ## iPhone / iPad (AR Quick Look)
 
 Safari en iOS no admite AR dentro de la página (WebXR), así que el botón **Ver en tu espacio**
-abre el visor de Apple, que no muestra los botones de la página. Por eso hay dos archivos:
+abre el visor de Apple con `models/ocelote.usdz`. Ese visor no muestra los botones de la
+página ni reproduce su audio, así que el archivo trae la voz integrada y "comportamientos"
+de Apple (el mismo esquema que usa Reality Composer):
 
-- `models/ocelote.usdz`: secuencia en bucle (Saludo → Reposo → Celebrar → Reposo, ~16 s).
-- `models/ocelote-habla.usdz`: animación `Hablar` con la voz integrada en el archivo.
+- Al aparecer, el Ocelote dice su diálogo (animación Hablar + voz) y luego queda en reposo.
+- Al tocarlo, vuelve a hablar.
 
-Si se toca **Hablar** antes de **Ver en tu espacio**, se abre la versión que habla; con
-cualquier otro botón, la secuencia en bucle. En iPhone, los botones y la voz también funcionan
-en la vista 3D de la página.
+En iPhone, los botones y la voz también funcionan en la vista 3D de la página.
 
-Para regenerar los USDZ (requiere Python 3.13):
+Para regenerar el USDZ (requiere Python 3.13 y ffmpeg):
 
 ```bash
 python3 -m venv venv && venv/bin/pip install bpy==5.2.4 usd-core
-venv/bin/python tools/make_usdz.py source/Ocelote_UNACH.fbx models/ocelote.usdz
-venv/bin/python tools/make_usdz.py source/Ocelote_UNACH.fbx models/ocelote-habla.usdz --seq Hablar --audio audio/ocelote.mp3
+ffmpeg -i audio/ocelote.mp3 -c:a aac -b:a 128k voz.m4a
+venv/bin/python tools/make_usdz.py source/Ocelote_UNACH.fbx models/ocelote.usdz --talk voz.m4a
 ```
 
-La secuencia se cambia con `--seq` (nombres separados por comas).
+Sin `--talk`, el script genera una secuencia de animaciones en bucle sin audio
+(se elige con `--seq`, nombres separados por comas).

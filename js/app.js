@@ -16,9 +16,6 @@ const ONE_SHOT = new Set(['Saludo', 'Celebrar', 'Hablar']);
 const TALK = 'Hablar';
 // Archivo de audio de la voz (si no existe, la animación se reproduce sin sonido).
 const AUDIO_SRC = 'audio/ocelote.mp3';
-// Modelos para AR Quick Look (iOS): secuencia en bucle y versión que habla (con audio integrado).
-const IOS_LOOP = 'models/ocelote.usdz';
-const IOS_TALK = 'models/ocelote-habla.usdz';
 
 let current = 'Idle';
 let hasAudio = false;
@@ -82,12 +79,9 @@ controls.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-anim]');
   if (!btn) return;
   playAnim(btn.dataset.anim);
-  // iPhone / iPad: Quick Look no muestra botones, así que elegimos qué versión abrir.
-  // Tras tocar "Hablar", el AR abre la versión que habla con su voz; si no, la secuencia en bucle.
-  mv.setAttribute('ios-src', btn.dataset.anim === TALK ? IOS_TALK : IOS_LOOP);
 });
 
-// Al entrar a AR paramos la voz de la página (en iOS, Quick Look trae su propio audio).
+// Al entrar a AR paramos la voz de la página (en iPhone, el USDZ trae su propia voz).
 document.getElementById('ar-button').addEventListener('click', () => {
   if (current === TALK) playAnim('Idle');
 });

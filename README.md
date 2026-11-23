@@ -14,10 +14,10 @@ cámara del celular. Se accede escaneando un código QR; no hace falta instalar 
 | --- | --- |
 | `index.html`, `css/`, `js/` | La página web |
 | `models/ocelote.glb` | Modelo convertido del FBX (665 KB, comprimido con Draco, 6 animaciones) |
-| `models/ocelote.usdz` | Versión animada para iPhone / iPad (AR Quick Look) |
+| `models/ocelote.usdz`, `models/ocelote-habla.usdz` | Versiones animadas para iPhone / iPad (AR Quick Look) |
 | `vendor/model-viewer.min.js` | [`<model-viewer>`](https://modelviewer.dev) 4.4.0 de Google |
 | `vendor/draco/` | Decodificador Draco (de three.js) para leer el modelo comprimido |
-| `audio/` | Aquí va el audio de voz (ver abajo) |
+| `audio/ocelote.mp3` | Voz del Ocelote (va con la animación Hablar) |
 | `qr/ocelote-qr.png` / `.svg` | Código QR que abre la página |
 | `qr/imprimir.html` | Hoja lista para imprimir con el QR e instrucciones |
 | `source/Ocelote_UNACH.fbx` | Modelo original |
@@ -31,16 +31,9 @@ parte inferior cambian de animación.
 
 ## Audio
 
-El archivo FBX **no contiene audio** (el formato FBX no guarda pistas de sonido), así que
-hay que agregarlo aparte:
-
-1. Exporta el audio de la voz (el que va con la animación `Hablar`, de 45 s) como MP3.
-2. Guárdalo como `audio/ocelote.mp3`.
-3. Haz commit y push.
-
-La página lo detecta sola: al tocar **💬 Hablar** suena la voz sincronizada con la
-animación, y aparece el botón 🔊 para silenciar. Sin el archivo, la animación se
-reproduce sin sonido.
+`audio/ocelote.mp3` es la voz del Ocelote (45 s). La animación `Hablar` dura exactamente lo
+mismo y su mandíbula ya está sincronizada con la voz. Al tocar **💬 Hablar**, la voz suena
+y la página corrige cualquier desfase entre audio y animación. El botón 🔊 silencia.
 
 ## Publicar en GitHub Pages
 
@@ -76,19 +69,21 @@ suelda vértices, re-muestrea las animaciones y comprime con Draco.
 ## iPhone / iPad (AR Quick Look)
 
 Safari en iOS no admite AR dentro de la página (WebXR), así que el botón **Ver en tu espacio**
-abre el visor de Apple con `models/ocelote.usdz`. Ese archivo trae una secuencia animada en
-bucle (Saludo → Reposo → Celebrar → Reposo, ~16 s).
+abre el visor de Apple, que no muestra los botones de la página. Por eso hay dos archivos:
 
-Limitaciones de Apple en ese visor: **no se pueden mostrar los botones de la página ni
-reproducir su audio**; el Ocelote sigue la secuencia fija. Para la experiencia completa
-(botones + voz) se necesita Android con Chrome. En iPhone, los botones y la voz sí funcionan
-en la vista 3D de la página (antes de entrar a AR).
+- `models/ocelote.usdz`: secuencia en bucle (Saludo → Reposo → Celebrar → Reposo, ~16 s).
+- `models/ocelote-habla.usdz`: animación `Hablar` con la voz integrada en el archivo.
 
-Para regenerar el USDZ (requiere Python 3.13):
+Si se toca **Hablar** antes de **Ver en tu espacio**, se abre la versión que habla; con
+cualquier otro botón, la secuencia en bucle. En iPhone, los botones y la voz también funcionan
+en la vista 3D de la página.
+
+Para regenerar los USDZ (requiere Python 3.13):
 
 ```bash
-python3 -m venv venv && venv/bin/pip install bpy==5.2.4
+python3 -m venv venv && venv/bin/pip install bpy==5.2.4 usd-core
 venv/bin/python tools/make_usdz.py source/Ocelote_UNACH.fbx models/ocelote.usdz
+venv/bin/python tools/make_usdz.py source/Ocelote_UNACH.fbx models/ocelote-habla.usdz --seq Hablar --audio audio/ocelote.mp3
 ```
 
-La secuencia se cambia en la lista `SEQUENCE` de `tools/make_usdz.py`.
+La secuencia se cambia con `--seq` (nombres separados por comas).

@@ -5,7 +5,7 @@ cámara del celular. Se accede escaneando un código QR; no hace falta instalar 
 
 - **Android (Chrome):** AR dentro de la página (WebXR) con animaciones, botones y voz.
   Si el teléfono no admite WebXR se abre Google Scene Viewer.
-- **iPhone / iPad (Safari o Chrome):** se abre AR Quick Look de Apple (ver nota sobre iOS abajo).
+- **iPhone / iPad (Safari):** se abre AR Quick Look de Apple con el Ocelote animado (ver limitaciones abajo).
 - **Computadora:** se ve el modelo 3D interactivo y un QR para abrirlo en el celular.
 
 ## Estructura
@@ -14,6 +14,7 @@ cámara del celular. Se accede escaneando un código QR; no hace falta instalar 
 | --- | --- |
 | `index.html`, `css/`, `js/` | La página web |
 | `models/ocelote.glb` | Modelo convertido del FBX (665 KB, comprimido con Draco, 6 animaciones) |
+| `models/ocelote.usdz` | Versión animada para iPhone / iPad (AR Quick Look) |
 | `vendor/model-viewer.min.js` | [`<model-viewer>`](https://modelviewer.dev) 4.4.0 de Google |
 | `vendor/draco/` | Decodificador Draco (de three.js) para leer el modelo comprimido |
 | `audio/` | Aquí va el audio de voz (ver abajo) |
@@ -72,10 +73,22 @@ El script usa three.js para leer el FBX, convierte los materiales a PBR (corrigi
 espacio de color lineal de Blender), une los grupos de material, y luego glTF-Transform
 suelda vértices, re-muestrea las animaciones y comprime con Draco.
 
-## Nota sobre iOS
+## iPhone / iPad (AR Quick Look)
 
-Quick Look de Apple solo lee archivos USDZ. Si no hay uno, `<model-viewer>` genera un USDZ
-al vuelo a partir del GLB, pero **sin animación ni audio**. Para tener animación en iPhone,
-exporta un USDZ animado desde Blender (File → Export → Universal Scene Description, con
-animación) o con Reality Converter, y guárdalo como `models/ocelote.usdz`; la página lo
-usará automáticamente.
+Safari en iOS no admite AR dentro de la página (WebXR), así que el botón **Ver en tu espacio**
+abre el visor de Apple con `models/ocelote.usdz`. Ese archivo trae una secuencia animada en
+bucle (Saludo → Reposo → Celebrar → Reposo, ~16 s).
+
+Limitaciones de Apple en ese visor: **no se pueden mostrar los botones de la página ni
+reproducir su audio**; el Ocelote sigue la secuencia fija. Para la experiencia completa
+(botones + voz) se necesita Android con Chrome. En iPhone, los botones y la voz sí funcionan
+en la vista 3D de la página (antes de entrar a AR).
+
+Para regenerar el USDZ (requiere Python 3.13):
+
+```bash
+python3 -m venv venv && venv/bin/pip install bpy==5.2.4
+venv/bin/python tools/make_usdz.py source/Ocelote_UNACH.fbx models/ocelote.usdz
+```
+
+La secuencia se cambia en la lista `SEQUENCE` de `tools/make_usdz.py`.

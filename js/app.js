@@ -37,12 +37,6 @@ async function setupAudio() {
   btnSound.hidden = !hasAudio;
 }
 
-async function setupIOS() {
-  // Si se agrega un USDZ animado (exportado desde Blender / Reality Converter),
-  // iOS lo usará en Quick Look. Si no, model-viewer genera uno estático.
-  if (await exists('models/ocelote.usdz')) mv.setAttribute('ios-src', 'models/ocelote.usdz');
-}
-
 function stopVoice() {
   if (!voz.paused) voz.pause();
   voz.currentTime = 0;
@@ -138,5 +132,4 @@ document.addEventListener('visibilitychange', () => {
 });
 
 setupAudio();
-setupIOS();
 syncLoop();

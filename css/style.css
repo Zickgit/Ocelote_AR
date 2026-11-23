@@ -50,7 +50,8 @@ model-viewer {
 /* Botón AR */
 .ar-button {
   position: absolute; left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 92px);
+  bottom: calc(env(safe-area-inset-bottom) + 84px);
+  white-space: nowrap;
   transform: translateX(-50%);
   display: flex; align-items: center; gap: 8px;
   padding: 14px 22px;
@@ -67,10 +68,14 @@ model-viewer[ar-status="session-started"] .ar-button { display: none; }
 .controls {
   position: absolute; left: 0; right: 0;
   bottom: calc(env(safe-area-inset-bottom) + 18px);
-  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
-  padding: 0 10px;
+  display: flex; gap: 8px; justify-content: safe center; flex-wrap: nowrap;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  padding: 4px 12px;
 }
+.controls::-webkit-scrollbar { display: none; }
 .controls button {
+  flex: none;
+  white-space: nowrap;
   padding: 10px 14px;
   font: 600 .9rem system-ui, sans-serif;
   color: var(--blanco); background: var(--azul);
